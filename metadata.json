@@ -1,0 +1,6 @@
+{
+  "name": "Mis Juegos Liquid Glass",
+  "description": "Una colección de juegos multijugador en tiempo real con diseño liquid glass",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
