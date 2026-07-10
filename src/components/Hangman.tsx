@@ -38,17 +38,28 @@ export function Hangman({ room, playerId, updateGameState }: Props) {
   const handleGuess = (letter: string) => {
     if (gameState.status !== 'playing' || gameState.turn !== playerIndex) return;
     const guessedLetters = gameState.guessedLetters || [];
-    if (guessedLetters.includes(letter)) return;
+    
+    const guessedCount = guessedLetters.filter((l: string) => l === letter).length;
+    const wordCount = gameState.word.split('').filter((l: string) => l === letter).length;
+
+    // Si ya superó el número de veces que aparece (o si no aparece y ya se pulsó), ya no se puede pulsar.
+    if (guessedCount > wordCount || (guessedCount > 0 && wordCount === 0)) return;
 
     const newGuessedLetters = [...guessedLetters, letter];
-    const isWrong = !gameState.word.includes(letter);
+    const newGuessedCount = guessedCount + 1;
+    const isWrong = newGuessedCount > wordCount;
+    
     const newWrongGuesses = (gameState.wrongGuesses || 0) + (isWrong ? 1 : 0);
 
     let newStatus = 'playing';
     if (newWrongGuesses >= (gameState.maxWrong || 6)) {
       newStatus = 'lost';
     } else {
-      const isWon = gameState.word.split('').every((char: string) => char === ' ' || newGuessedLetters.includes(char));
+      const isWon = gameState.word.split('').filter((char: string) => char !== ' ').every((char: string) => {
+        const wCount = gameState.word.split('').filter((c: string) => c === char).length;
+        const gCount = newGuessedLetters.filter((c: string) => c === char).length;
+        return gCount >= wCount;
+      });
       if (isWon) newStatus = 'won';
     }
 
@@ -200,7 +211,11 @@ export function Hangman({ room, playerId, updateGameState }: Props) {
           wordLength > 10 ? "max-w-full" : "max-w-2xl"
         )}>
           {gameState.word.split('').map((char: string, i: number) => {
-            const isRevealed = guessedLetters.includes(char) || gameState.status === 'lost';
+            const wordUpToI = gameState.word.substring(0, i + 1);
+            const charCountInWordUpToI = wordUpToI.split('').filter((c: string) => c === char).length;
+            const charCountInGuesses = (gameState.guessedLetters || []).filter((c: string) => c === char).length;
+            
+            const isRevealed = charCountInGuesses >= charCountInWordUpToI || gameState.status === 'lost';
             const isSpace = char === ' ';
             return (
               <div key={i} className={cn(
@@ -228,20 +243,23 @@ export function Hangman({ room, playerId, updateGameState }: Props) {
         {/* Custom Virtual Keyboard */}
         <div className="flex flex-wrap justify-center gap-1.5 sm:gap-2 w-full max-w-xl">
           {alphabet.map((letter) => {
-            const isGuessed = guessedLetters.includes(letter);
-            const isCorrect = isGuessed && gameState.word.includes(letter);
-            const isWrong = isGuessed && !gameState.word.includes(letter);
+            const guessedCount = (gameState.guessedLetters || []).filter((l: string) => l === letter).length;
+            const wordCount = gameState.word.split('').filter((l: string) => l === letter).length;
+            
+            const isWrong = guessedCount > wordCount || (guessedCount > 0 && wordCount === 0);
+            const isCorrect = guessedCount > 0 && guessedCount <= wordCount;
+            const isDisabled = isWrong || !isMyTurn || gameState.status !== 'playing';
 
             return (
               <button
                 key={letter}
                 onClick={() => handleGuess(letter)}
-                disabled={isGuessed || !isMyTurn || gameState.status !== 'playing'}
+                disabled={isDisabled}
                 className={cn(
                   "w-[12%] sm:w-12 h-12 sm:h-14 rounded-lg sm:rounded-xl font-bold text-lg sm:text-2xl flex items-center justify-center transition-all",
+                  isWrong ? "bg-black/40 text-white/30 border border-white/5 scale-95 grayscale" :
                   isCorrect ? "bg-green-500/80 text-white border border-green-400 shadow-[0_0_15px_rgba(34,197,94,0.4)] scale-95" :
-                  isWrong ? "bg-black/40 text-white/30 border border-white/5 scale-95" :
-                  !isGuessed && isMyTurn && gameState.status === 'playing' ? "glass-button hover:bg-white/20 hover:-translate-y-1 hover:shadow-lg active:scale-95" : "glass-panel opacity-50 cursor-default"
+                  !isDisabled && isMyTurn ? "glass-button hover:bg-white/20 hover:-translate-y-1 hover:shadow-lg active:scale-95" : "glass-panel opacity-50 cursor-default"
                 )}
               >
                 {letter}

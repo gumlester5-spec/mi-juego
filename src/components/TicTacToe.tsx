@@ -271,7 +271,7 @@ export function TicTacToe({ room, playerId, updateGameState }: Props) {
               <button
                 key={idx}
                 onClick={() => handleCellClick(idx)}
-                disabled={cell !== null || !isMyTurn || gameState.winner !== null}
+                disabled={cell !== null || !isMyTurn || !!gameState.winner}
                 className={cn(
                   "w-full h-full rounded-2xl sm:rounded-3xl flex items-center justify-center transition-all",
                   cell === null && isMyTurn && !gameState.winner 
